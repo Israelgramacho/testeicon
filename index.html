@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Busca de Pictogramas ARASAAC</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      color: #333;
+      margin: 30px 0;
+      font-size: 2em;
+    }
+
+    .search-container {
+      display: flex;
+      gap: 10px;
+      max-width: 600px;
+      margin: 20px auto;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input {
+      padding: 12px 20px;
+      width: 100%;
+      max-width: 450px;
+      font-size: 16px;
+      border-radius: 25px;
+      border: 2px solid #ccc;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      padding: 12px 30px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background 0.3s, transform 0.1s;
+    }
+
+    button:hover {
+      background: #0056b3;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .pic {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pic:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .pic img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+
+    .pic p {
+      margin: 5px 0 0;
+      font-size: 14px;
+      color: #444;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    .loading {
+      font-size: 18px;
+      color: #666;
+      margin: 40px 0;
+    }
+
+    .error {
+      color: #dc3545;
+      font-size: 16px;
+      margin: 40px 0;
+    }
+
+    .empty {
+      color: #666;
+      font-size: 16px;
+      margin: 40px 0;
+    }
+
+    @media (max-width: 768px) {
+      h2 {
+        font-size: 1.5em;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        padding: 10px;
+      }
+
+      .pic img {
+        width: 80px;
+        height: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔎 Busca de Pictogramas - ARASAAC</h2>
+    
+    <div class="search-container">
+      <input 
+        type="text" 
+        id="busca" 
+        placeholder="Digite uma palavra (ex: comer, dormir, escola)"
+        onkeypress="if(event.key === 'Enter') buscar()"
+      >
+      <button onclick="buscar()">Buscar</button>
+    </div>
+
+    <div class="grid" id="resultados"></div>
+  </div>
+
+  <script>
+    async function buscar() {
+      const termo = document.getElementById("busca").value.trim();
+      const resultados = document.getElementById("resultados");
+
+      if (!termo) {
+        resultados.innerHTML = "<p class='empty'>Por favor, digite uma palavra para buscar.</p>";
+        return;
+      }
+
+      resultados.innerHTML = "<p class='loading'>🔄 Carregando...</p>";
+
+      try {
+        const resposta = await fetch(
+          `https://corsproxy.io/?https://api.arasaac.org/api/pictograms/pt/${encodeURIComponent(termo)}`
+        );
+
+        if (!resposta.ok) {
+          throw new Error(`Erro HTTP: ${resposta.status}`);
+        }
+
+        const dados = await resposta.json();
+
+        if (!dados || !Array.isArray(dados) || dados.length === 0) {
+          resultados.innerHTML = "<p class='empty'>Nenhum pictograma encontrado para esta busca.</p>";
+          return;
+        }
+
+        resultados.innerHTML = dados.slice(0, 20).map(p => {
+          const keyword = p.keywords && p.keywords[0] ? p.keywords[0].keyword : 'Sem nome';
+          const imageUrl = `https://static.arasaac.org/pictograms/${p._id}/${p._id}_500.png`;
+          
+          return `
+            <div class="pic">
+              <img src="${imageUrl}" alt="${keyword}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3EErro%3C/text%3E%3C/svg%3E';">
+              <p>${keyword}</p>
+            </div>
+          `;
+        }).join("");
+
+      } catch (erro) {
+        console.error("Erro ao buscar pictogramas:", erro);
+        resultados.innerHTML = `
+          <p class='error'>
+            ❌ Erro ao buscar pictogramas. Verifique sua conexão com a internet e tente novamente.
+          </p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
+
